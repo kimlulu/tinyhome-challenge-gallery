@@ -298,7 +298,7 @@ function load(img, id, w, isHero, fb, queued) {
 }
 
 /* ---------------- state ---------------- */
-var PIN_KEY = 'vizcom-tinyhome-pinned';
+var PIN_KEY = 'vizcom-tinyhome-top10-pinned';
 
 /* Pins are stored two ways, because this page is usually opened straight from
    disk (file://) where browsers often block localStorage entirely:
@@ -309,13 +309,23 @@ var PIN_KEY = 'vizcom-tinyhome-pinned';
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
+/* Only ever trust a pin that matches a card on THIS page. Pins arrive from
+   browser storage and from the URL, and the full gallery and the finalists
+   page number their cards differently, so an unfiltered pin set would show a
+   count for submissions that aren't here. */
+function onThisPage(nums) {
+  var have = {};
+  for (var i = 0; i < CARDS.length; i++) have[CARDS[i].n] = 1;
+  return new Set(nums.filter(function (n) { return have[n]; }));
+}
+
 function readPins() {
   var fromHash = (location.hash || '').replace(/^#/, '');
   if (/^pins=/.test(fromHash)) {
     var nums = fromHash.slice(5).split(',').filter(Boolean).map(Number).filter(function (n) { return n > 0; });
-    if (nums.length) return new Set(nums);
+    if (nums.length) return onThisPage(nums);
   }
-  try { return new Set(JSON.parse(lsGet(PIN_KEY) || '[]')); } catch (e) { return new Set(); }
+  try { return onThisPage(JSON.parse(lsGet(PIN_KEY) || '[]')); } catch (e) { return new Set(); }
 }
 
 var pinned = readPins();
